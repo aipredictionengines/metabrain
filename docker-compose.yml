@@ -1,0 +1,39 @@
+version: '3.8'
+
+networks:
+  prediction_net:
+    driver: bridge
+
+volumes:
+  n8n_storage:
+    driver: local
+
+services:
+  # Core Automation & Orchestration Layer
+  prediction-engine-core:
+    image: n8nio/n8n:latest
+    container_name: ai_prediction_core
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_ENCRYPTION_KEY=change_this_to_a_secure_random_string
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_storage:/home/node/.n8n
+    networks:
+      - prediction_net
+
+  # Data Analytics & Processing Worker (Python/Node modular runner)
+  analytics-worker:
+    image: python:3.10-slim
+    container_name: ai_analytics_worker
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./worker:/app
+    command: python -m http.server 8000
+    ports:
+      - "8000:8000"
+    networks:
+      - prediction_net
